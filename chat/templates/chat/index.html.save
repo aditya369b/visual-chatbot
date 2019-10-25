@@ -1,7 +1,7 @@
 {% extends 'chat/base.html' %} {% load static %} {% block sidebar %} {% endblock %} {% block messages %}
 <div class="messages">
     <div class="row chat chat_bot_row">
-        <img src="{% static 'images/bot.png'%}" id=bot_image width="40px" height="50px" class="circle" align="left">
+        <img src="{% static 'images/bot.png'%}" width="40px" height="50px" class="circle" align="left">
         <div class="col s9 l7 left chat_bot">
             <div class="card-panel black-text grey lighten-3">
                 <span class="black-text">{{ bot_intro_message }}</span>
@@ -45,7 +45,6 @@ var generated_caption = "";
 var job_id = null;
 var image_question_mapping = [];
 var question_id = 1;
-var question_user = "";
 var currentUploadedImageDiv = ""; // set the current uploaded image div
 var justClearedHistory = true;
 var scrollHeightOnClearHistory = 60;
@@ -60,8 +59,6 @@ $("#question").keypress(function(e) {
 
 // Below function is to show the preview of file being uploaded
 function readURL(input) {
-	console.log('readURL entered!!');
-
     if (input.files && input.files[0]) {
         var reader = new FileReader();
         var formData = new FormData();
@@ -130,67 +127,6 @@ var socket = new WebSocket(ws_scheme + '://' + window.location.host + "/chat" + 
 socket.onopen = function() {
     socket.send("{{ socketid }}");
 }
-var socket2 = new WebSocket(ws_scheme + '://' + window.location.host  + '/users/');
-console.log('The patth is: '+window.location.pathname);
-socket2.onopen = function() {
-	console.log(ws_scheme + '://' + window.location.host + '/bat' + window.location.pathname);
-	socket2.send(JSON.stringify({
-	'message' : 'testing',
-	'source'  :  'visdial',
-	'type'    :  'text'
-}));
-}
-
-socket2.onmessage = function(response) {
-	console.log("Image binary data testing: " + response);
-	console.log("Message received 1");
-	response = JSON.parse(response.data);
-	console.log("Msg rcd 2" + (response));
-	response = JSON.parse(response['text']);
-	console.log("MSG rcd 3: " + response);
-	output = response['message'];
-	console.log("Got Response from node.js:  " + response.message);
-	console.log("Checking message types 1:  " + response.source);
-	console.log("Checking message types 2:  " + response.type);
-	console.log("Base64 to binary:    ");
-	console.log("    ");
-	//bot_image.src = 'data:image/jpg;base64,' + response.message;
-
-
-	if(response.source == 'user_study' && response.type == 'image'){	
-	
-	const byteCharacters = atob(response.message);
-	const byteNumbers = new Array(byteCharacters.length);
-	for(let i=0; i < byteCharacters.length; i++){  //>
-		byteNumbers[i] = byteCharacters.charCodeAt(i);
-	}
-	const byteArray = new Uint8Array(byteNumbers);
-	const newBlob = new Blob([byteArray], {type: 'image/jpg'});
-	console.log('Type of blob is: '+typeof(newBlob))
-
-	//bot_image.src = URL.createObjectURL(newBlob);
-	newBlob.lastModifiedDate = new Date();
-	newBlob.name = 'imge';
-	console.log('After Modification, the type is: ' + typeof(newBlob));
-
-	class newFile {
-		constructor(filesName){
-			this.files = filesName;
-			}
-		}
-
-	imageFile = new newFile([newBlob]);
-	readURL(imageFile);
-	}
-
-	if(response.source == 'user_study' && response.type == 'text')
-	{
-		console.log("question received is:  " + response.message);
-		question_user = response.message;
-		submitQuestion();
-	}
-}
-
 socket.onmessage = function(response) {
     response = JSON.parse(response.data);
     if ("result" in response) {
@@ -205,24 +141,14 @@ socket.onmessage = function(response) {
 	   .then(function(response){
 	audio_clip.src = response['url'];
 	})
-	socket2.send(JSON.stringify({
-			'message' : bot_message,
-			'source'  : 'visdial',
-			'type'    :  'text'
-	}));
 	
 	
-       } else if ("pred_caption" in result) {
+        } else if ("pred_caption" in result) {
             prev_history = result['pred_caption'];
             generated_caption = result['pred_caption'];
+    	    var url_api = "http://api.voicerss.org/?key=8289e9c078474c0abab3604aba18df45&hl=en-us&src=";
 	    var url_api = "http://api.voicerss.org/?key=8289e9c078474c0abab3604aba18df45&hl=en-us&src=";
-	    var url_final = url_api.concat(result['pred_caption']);
-	    fetch(url_final)
-	    .then(function(response){
-	  audio_clip.src = response['url'];
-	  })
-
-            var bot_message = "<b>Caption: </b>" + result['pred_caption'];
+bot_message = "<b>Caption: </b>" + result['pred_caption'];
         }
         // Show the answer predcited by Bot
         var botChatDiv = $('<div class="row chat chat_bot_row"></div>');
@@ -411,9 +337,6 @@ function showBotResponse(message) {
 <script type="text/javascript">
 function submitQuestion() {
     var question = $("#question").val();
-    if (question == "")
-	question = question_user;
-
     if (question.length >= 3) {
         $("#question").val('');
         showUserQuestion(question);
