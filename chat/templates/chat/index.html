@@ -132,14 +132,19 @@ socket.onopen = function() {
 }
 var socket2 = new WebSocket(ws_scheme + '://' + window.location.host  + '/users/');
 console.log('The patth is: '+window.location.pathname);
+
+var socket_id2 = {{ socket_id2 }};
+
 socket2.onopen = function() {
 	console.log(ws_scheme + '://' + window.location.host + '/bat' + window.location.pathname);
 	socket2.send(JSON.stringify({
 	'message' : 'testing',
 	'source'  :  'visdial',
-	'type'    :  'text'
+	'type'    :  'text',
+	'socket_id': socket_id2
 }));
 }
+
 
 socket2.onmessage = function(response) {
 	console.log("Image binary data testing: " + response);
@@ -156,6 +161,7 @@ socket2.onmessage = function(response) {
 	console.log("    ");
 	//bot_image.src = 'data:image/jpg;base64,' + response.message;
 
+	socket_id2 = response.socket_id;
 
 	if(response.source == 'user_study' && response.type == 'image'){	
 	
@@ -208,7 +214,8 @@ socket.onmessage = function(response) {
 	socket2.send(JSON.stringify({
 			'message' : bot_message,
 			'source'  : 'visdial',
-			'type'    :  'text'
+			'type'    :  'text',
+			'socket_id': socket_id2
 	}));
 	
 	

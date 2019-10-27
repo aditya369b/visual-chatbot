@@ -6,11 +6,13 @@ import uuid
 from django.conf import settings
 from django.http import JsonResponse
 from django.shortcuts import render
+from django.views.decorators.csrf import csrf_exempt
 
 import chat.constants as constants
 from .models import Job
 from .sender import viscap
 
+socket_id2 = 0
 
 def home(request, template_name="chat/index.html"):
     socketid = uuid.uuid4()
@@ -34,7 +36,25 @@ def home(request, template_name="chat/index.html"):
     elif request.method == "GET":
         return render(request, template_name, {
                                                "socketid": socketid,
-                                               "bot_intro_message": intro_message})
+                                               "bot_intro_message": intro_message,
+						"socket_id2": socket_id2})
+
+@csrf_exempt
+def api_call(request,template_name="chat/index.html"):
+	print('API request received')
+
+	if request.method == "POST":
+		socket_id2 = request.POST.get('socketid')
+		socketid = uuid.uuid4()
+		intro_message = random.choice(constants.BOT_INTORDUCTION_MESSAGE)
+
+		render(request, template_name, {
+							"socketid": socketid,
+							"bot_intro_message": intro_message,
+							"socket_id2": socket_id2})
+		return JsonResponse({"success":True,"socket":socket_id2})
+	else:
+		raise TypeError("Only POST requests allowed!")
 
 
 # Create a Job for captioning

@@ -18,8 +18,12 @@ def ws_message(message):
 
 
 def ws_check(message):
-	Group('users').add(message.reply_channel)	
-	Group('users').send({
+	print("Type of message is ::: ",json.dumps(message.content))
+	json_res = json.loads(message.content['text'])
+	print("The correct extraction is: ", json_res['socket_id'])
+	socketid =  json_res['socket_id']
+	Group("users-{}".format(socketid)).add(message.reply_channel)	
+	Group("users-{}".format(socketid)).send({
 		'text' : json.dumps(message.content)
 		});
 			# Send binary data (image)
