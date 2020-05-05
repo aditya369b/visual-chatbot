@@ -143,7 +143,8 @@ def callback(ch, method, properties, body):
             answer = demo_manager.respond(body['input_question'])
             result = {
                 'answer': answer,
-                'question': body['input_question']
+                'question': body['input_question'],
+		'socketid': body['socketid']
             }
             log_to_terminal(body['socketid'], {"result": json.dumps(result)})
             ch.basic_ack(delivery_tag=method.delivery_tag)
@@ -157,7 +158,8 @@ def callback(ch, method, properties, body):
             demo_manager.set_image(body['image_path'])
             caption = demo_manager.get_caption()
             result = {
-                'pred_caption': caption
+                'pred_caption': caption,
+		'socketid' : body['socketid']
             }
             log_to_terminal(body['socketid'], {"result": json.dumps(result)})
             ch.basic_ack(delivery_tag=method.delivery_tag)

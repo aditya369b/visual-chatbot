@@ -202,6 +202,7 @@ socket.onmessage = function(response) {
     if ("result" in response) {
         result = JSON.parse(response['result']);
         prev_history = result['history'];
+	console.log("result['history'] is: ",result['history']);
 
         if ("answer" in result) {
             var bot_message = result['answer'];
