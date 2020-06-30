@@ -10,8 +10,9 @@ from django.shortcuts import render
 import chat.constants as constants
 from .models import Job
 from .sender import viscap
+from rest_framework.decorators import api_view
 
-
+@api_view(['GET','POST'])
 def home(request, template_name="chat/index.html"):
     socketid = uuid.uuid4()
     intro_message = random.choice(constants.BOT_INTORDUCTION_MESSAGE)
@@ -38,10 +39,11 @@ def home(request, template_name="chat/index.html"):
 
 
 # Create a Job for captioning
+@api_view(['POST'])
 def upload_image(request):
 
     if request.method == "POST":
-        image = request.FILES['file']
+        image = request.FILES.get('file')
         socketid = request.POST.get('socketid')
         output_dir = os.path.join(settings.MEDIA_ROOT, 'svqa', socketid)
         if not os.path.exists(output_dir):
