@@ -1,5 +1,6 @@
 import os
 import torch
+import codecs, json 
 
 from typing import Any, Dict, Optional
 from nltk.tokenize.treebank import TreebankWordDetokenizer
@@ -40,7 +41,16 @@ class DemoSessionManager:
         TODO: need this?
 
     """
-
+    image_feat_list = []
+    image_feat_dict = {}
+    f = open('image_features_set.json')
+    d = json.load(f)
+    for arr in d: 
+        tensor = torch.tensor(arr[0])
+        image_feat_dict[tensor] = True
+        image_feat_list.append(tuple(arr[0]))
+        image_feat_list.append(arr[1])
+    # test = "Testing"
     def __init__(
             self,
             caption_model: DetectCaption,
@@ -58,6 +68,7 @@ class DemoSessionManager:
         self.caption_config = config["captioning"]
         self.cuda_device = cuda_device
         self.add_boundary_toks = add_boundary_toks
+        self.image_features_list = []
 
         # Initialize class variables
         self.image_features, self.image_caption_nl, self.image_caption = (
@@ -125,6 +136,7 @@ class DemoSessionManager:
             Pass the answer as raw string.
 
         """
+        
 
         if question is not None:
             question = word_tokenize(question)
@@ -202,6 +214,97 @@ class DemoSessionManager:
         # build the initial history
         self._update()
 
+    def set_image_condition(self, image_path, user_caption=''):
+        r""" Build a dict object for inference inside the Visdial
+        model. This is used internally by the ``respond`` method.
+
+        Parameters
+        ----------
+        question : ``str``
+            Pass the question as raw string.
+
+        Returns
+        -------
+        Dict[str, torch.Tensor]
+            A dictionary object that can be passed to forward method of the
+            Visdial model.
+
+        """
+
+        self._reset()
+        if not os.path.isabs(image_path) and not validate_url(image_path):
+            image_path = os.path.abspath(image_path)
+        print(f"Loading image from : {image_path}")
+        caption_tokens, image_features = self.detect_caption_model.predict(
+            image_path,
+            self.caption_config["detectron_model"]["feat_name"],
+            True,
+        )
+
+        self.image_features_dict = {}
+        
+
+
+        if self.dataset_config["img_norm"]:
+            image_features = normalize(image_features, dim=0, p=2)
+
+        self.image_caption_nl = \
+        self.detect_caption_model.caption_processor(
+            caption_tokens.tolist()[0]
+        )["caption"]
+
+        self.image_features = image_features.unsqueeze(0)
+        print("image features: ",self.image_features.cpu().data)
+        
+        image_feat_list = self.image_features.cpu().data.numpy().tolist()
+        
+        
+        # if tuple(image_feat_list) in DemoSessionManager.image_feat_list:
+        #     index = DemoSessionManager.image_feat_list.index(tuple(image_feat_list))
+        #     print("cap: ",DemoSessionManager.image_feat_list[index+1])
+        #     self.image_caption_nl = DemoSessionManager.image_feat_list[index+1]
+        #     # self.image_caption_nl = "Image added"
+
+        self.image_caption_nl = user_caption
+        self.image_features_dict[self.image_features] = True
+        print(self.image_features_dict)
+        image_dict = {}
+        image_dict[1] = 'World'
+        
+        # jpeg_tensor = tf.image.encode_jpeg(image_tensor)
+        # print(jpeg_tensor)
+        data_new = image_dict
+        # torch.save('torch.txt',self.image_features,'ascii')
+        # print("Img F1: ",self.image_features.cpu().data.numpy().tolist())
+        # json.dump(self.image_features.cpu().data.numpy().tolist() ,  codecs.open("file_name.json", 'w', encoding='utf-8'), separators=(',', ':'), sort_keys=True)
+        # json.dump([[1,2],[3,4],[5,6]] ,  codecs.open("file_name.json", 'w', encoding='utf-8'), separators=(',', ':'), sort_keys=True)
+        # f = open('file_name.json')
+        # d = json.load(f)
+        print("Type1: ",type(self.image_features.cpu().data.numpy().tolist()))
+        # print("Type2: ",type(d))
+        # print("Img F2: ", d == self.image_features.cpu().data.numpy().tolist())
+#         pytorch_tensor = torch.tensor(
+# [
+#   [
+#       [0.1, 0.2, 0.3],
+#       [0.4, 0.5, 0.6],
+#       [0.7, 0.8, 0.9]
+#   ],
+#   [
+#       [1.1, 1.2, 1.3],
+#       [1.4, 1.5, 1.6],
+#       [1.7, 1.8, 1.9]
+#   ]
+# ]
+# )
+
+        # print('tensor1: ',type(pytorch_tensor))
+        print('tensor2: ',type(self.image_features))
+        self.image_caption = self.vocabulary.to_indices(
+        word_tokenize(self.image_caption_nl))
+        # build the initial history
+        self._update()
+
     def get_caption(self):
         r""" Return natural language caption.
 
@@ -252,6 +355,57 @@ class DemoSessionManager:
         # Update the dialog history and return answer
         self._update(user_question, answer)
         return answer
+
+    def set_condition(self, image_path, human_caption):
+        r""" 
+        Used for conditioning visual dialog
+
+        """
+        if not os.path.isabs(image_path) and not validate_url(image_path):
+            image_path = os.path.abspath(image_path)
+        print(f"Loading image from : {image_path}")
+        caption_tokens, image_features = self.detect_caption_model.predict(
+            image_path,
+            self.caption_config["detectron_model"]["feat_name"],
+            True,
+        )
+
+        self.image_features_dict = {}
+        # self.image_features_list = []
+        
+        if self.dataset_config["img_norm"]:
+            image_features = normalize(image_features, dim=0, p=2)
+
+        # self.image_caption_nl = \
+        # self.detect_caption_model.caption_processor(
+        #     caption_tokens.tolist()[0]
+        # )["caption"]
+
+        self.image_features = image_features.unsqueeze(0)
+        image_features = image_features.unsqueeze(0)
+        print("image features: ",self.image_features)
+        
+        
+        # print(image_features_dict)
+        image_dict = {}
+        image_dict[1] = 'World'
+        
+        # jpeg_tensor = tf.image.encode_jpeg(image_tensor)
+        # print(jpeg_tensor)
+        data_new = image_dict
+        # torch.save('torch.txt',self.image_features,'ascii')
+        # print("Img F1: ",self.image_features.cpu().data.numpy().tolist())
+        # json.dump(self.image_features.cpu().data.numpy().tolist() ,  codecs.open("file_name.json", 'w', encoding='utf-8'), separators=(',', ':'), sort_keys=True)
+        # f = open('file_name.json')
+        # d = json.load(f)
+        
+        self.image_features_list.append([image_features.cpu().data.numpy().tolist(),human_caption])
+
+        print(self.image_features_list)
+
+    def save_condition(self, file_name = "image_features_set.json"):
+
+        json.dump(self.image_features_list ,  codecs.open(file_name, 'w', encoding='utf-8'), separators=(',', ':'), sort_keys=True)
 
 
 def validate_url(path: str):

@@ -4,7 +4,10 @@
         <img src="{% static 'images/bot.png'%}" width="40px" height="50px" class="circle" align="left">
         <div class="col s9 l7 left chat_bot">
             <div class="card-panel black-text grey lighten-3">
-                <span class="black-text">{{ bot_intro_message }}</span>
+                <span class="black-text"> {{ bot_intro_message }} 
+                    <!-- <input id="condition_caption" type="text" placeholder="Start typing caption here ..." autocomplete="off"> -->
+                </span>
+
             </div>
         </div>
     </div>
@@ -12,6 +15,7 @@
 </div>
 {% endblock %} {% block message_typing %}
 <nav class="message_typing z-depth-3">
+    <div>
     <div class="nav-wrapper">
         <div class="row">
             <div class="col s2 l1 clearHistoryAndAddPicDiv">
@@ -24,13 +28,15 @@
                 </div>
             </div>
             <div class="col s7 input-field">
-                <input id="question" type="text" placeholder="Start typing question here ..." autocomplete="off">
-                <i class="material-icons">close</i>
+                <input id="question" type="text" placeholder="Start typing caption or question here ..." autocomplete="off">
+                <!-- <input id="condition_caption" type="text" placeholder="Start typing caption here ..." autocomplete="off"> -->
+                <!-- <i class="material-icons">close</i> -->
             </div>
             <div class="col s2 right sendQuestionButton">
                 <i class="material-icons right" style="cursor:pointer">send</i>
             </div>
         </div>
+    </div>
     </div>
 </nav>
 <script type="text/javascript">
@@ -44,34 +50,80 @@ var question_id = 1;
 var currentUploadedImageDiv = ""; // set the current uploaded image div
 var justClearedHistory = true;
 var scrollHeightOnClearHistory = 60;
+var conditionURL = "{%url 'upload' %}";
+var isCondition = false;
+var captionSent = false;
+
+$('#is-condition').change(function() {
+    console.log("toggle button changed");
+        if($(this).is(":checked")) {
+            console.log("toggle button changed to condition true");
+            conditionURL = "{%url 'uploadcondition' %}";
+            isCondition = true;
+        } else {
+            console.log("toggle button changed to condition false");
+            conditionURL = "{%url 'upload' %}";
+            isCondition = false;
+        }
+        console.log("Value of conditionURL: ",conditionURL);
+    });
+
 $("#question").keypress(function(e) {
     var key = e.which;
     if (key == 13) // the enter key code
     {
-        submitQuestion();
+        if(isCondition && !captionSent)
+        {
+            console.log("Sending caption!");
+            captionSent = true;
+            // sendUrl($("input:file"));
+            var inputFile = document.getElementById("uploadImage");
+            // readURL(sendUrl($("input:file")););
+            console.log(inputFile)
+            sendUrl(inputFile);
+        }
+        else
+        {
+            submitQuestion();
+        }
     }
 });
+
+// $("#condition_caption").on('keypress', function(e) {
+function isKeyPress(e) {
+    console.log("Typing caption!");
+    var key = e.which;
+    if (key == 13 && !captionSent) // the enter key code
+    {
+        console.log("Sending caption!");
+        captionSent = true;
+        sendUrl($("input:file"));
+    }
+}
 
 // Below function is to show the preview of file being uploaded
 function readURL(input) {
     if (input.files && input.files[0]) {
         var reader = new FileReader();
-        var formData = new FormData();
-        formData.append('file', input.files[0]);
-        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
-        formData.append('socketid', '{{ socketid }}');
-        $.ajax({
-                type: 'POST',
-                url: '{% url 'upload' %}',
-                data: formData,
-                processData: false,
-                contentType: false,
-            })
-            .done(function(response) {
-                image = response['file_path'];
-                image_url = response['img_url'];
-                job_id = response['job_id'];
-            });
+        // var formData = new FormData();
+        // var conditionType = 'uploadcondition';
+        // var conditionURL = "{%url 'uploadcondition' %}";
+        // formData.append('file', input.files[0]);
+        // formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+        // formData.append('socketid', '{{ socketid }}');
+        // $.ajax({
+        //         type: 'POST',
+        //         url: conditionURL,
+        //         // url: '{% url 'uploadcondition' %}',
+        //         data: formData,
+        //         processData: false,
+        //         contentType: false,
+        //     })
+        //     .done(function(response) {
+        //         image = response['file_path'];
+        //         image_url = response['img_url'];
+        //         job_id = response['job_id'];
+        //     });
 
         $("#dragAndDropContentHeading").hide();
         var userChatDiv = $('<div class="row chatImage chat_row_human "></div>');
@@ -107,12 +159,60 @@ function readURL(input) {
         reader.readAsDataURL(input.files[0]);
         $('.materialboxed').materialbox();
         message = "Please wait for a few seconds while a caption is being generated for the uploaded image.";
+        if(isCondition)
+            message = "Please type the caption below in the blue text area and press enter/click send"
         showBotResponse(message);
     }
 }
 
+function sendUrl(input){
+    // debugger;
+    console.log("Step 1");
+    if (input.files && input.files[0]) {
+        console.log("Step 2");
+        // var reader = new FileReader();
+        var formData = new FormData();
+        var conditionType = 'uploadcondition';
+        // var conditionURL = "{%url 'uploadcondition' %}";
+        formData.append('file', input.files[0]);
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+        formData.append('socketid', '{{ socketid }}');
+        if(isCondition)
+        {
+            formData.append('userCaption', $("#question").val());
+            $("#question").val('');
+        }
+            
+        console.log("Step 3");
+        $.ajax({
+                type: 'POST',
+                url: conditionURL,
+                // url: '{% url 'uploadcondition' %}',
+                data: formData,
+                processData: false,
+                contentType: false,
+            })
+            .done(function(response) {
+                console.log("Step 4");
+                image = response['file_path'];
+                image_url = response['img_url'];
+                job_id = response['job_id'];
+            });
+        //     reader.onload = function(e) {
+        //     $(imageElement).attr('src', e.target.result);
+        //     $("html, body").animate({
+        //         scrollTop: $(document).height() - $(window).height()
+        //     }, 1000);
+        // }
+        // reader.readAsDataURL(input.files[0]);
+}
+}
+
 $("input:file").change(function() {
+    captionSent = false;
     readURL(this);
+    if(!isCondition)
+        sendUrl(this);
 });
 </script>
 
@@ -206,7 +306,16 @@ $(".sendQuestionButton").click(function() {
     var e = jQuery.Event("keydown");
     e.keyCode = 50;
     $("#question").trigger(e);
-    submitQuestion();
+    if(isCondition && !captionSent)
+    {
+        captionSent = true;
+        sendUrl(document.getElementById("uploadImage"));
+    }
+    else
+    {
+       submitQuestion(); 
+    }
+        
 });
 </script>
 
@@ -215,9 +324,12 @@ $(".messages").css("min-height", $(window).height() - $("nav-wrapper").height() 
 
 if ($(window).width() >= 600) {
     Dropzone.autoDiscover = false;
+    
+    var conditionType = 'uploadcondition';
+    // var conditionURL = "{%url 'uploadcondition' %}";
 
     var myDropzone = new Dropzone(".messages", {
-        url: "{%url 'upload'%}",
+        url: conditionURL,
         previewTemplate: '<div style="display:none"></div>',
         autoProcessQueue: true,
         init: function() {
@@ -226,7 +338,10 @@ if ($(window).width() >= 600) {
     });
 
     myDropzone.on("addedfile", function(file) {
+        captionSent = false;
         readURL($("input:file"));
+        if(!isCondition)
+            sendUrl($("input:file"));
     });
 
     myDropzone.on("sending", function(file, xhr, formData) {
@@ -307,7 +422,10 @@ function showBotResponse(message) {
     var botImage = $('<img src="{% static 'images/bot.png' %}" width="40px" height="50px" class="circle" align="left">');
     var botColDiv = $('<div class="col s9 l7 left chat_bot"></div>');
     var botCardPanelDiv = $('<div class="card-panel black-text grey lighten-3"></div>');
-
+    var inputText = '<div><input id="condition_caption" onkeypress="isKeyPress(event)" style="width:800px; height:20px;" type="text" placeholder="Start typing caption here ..." autocomplete="off"></div>';
+    inputText += '<div class="col s2 right sendQuestionButton">';
+        inputText +='<i class="material-icons right" style="cursor:pointer">send</i>';
+        inputText +="</div>";
     $(botCardPanelDiv).prepend('<span class="black-text">' + message + '</span>');
     $(botColDiv).prepend(botCardPanelDiv);
     $(botChatDiv).prepend(botColDiv);

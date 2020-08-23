@@ -26,7 +26,7 @@ def home(request, template_name="chat/index.html"):
             history = request.POST.get("history", "")
             img_path = urllib.parse.unquote(img_path)
             abs_image_path = str(img_path)
-            viscap(str(abs_image_path), socketid, job_id, str(question), str(history))
+            viscap(str(abs_image_path), socketid, job_id, '', False, str(question), str(history))
 
             return JsonResponse({"success": True})
         except Exception:
@@ -58,6 +58,29 @@ def upload_image(request):
     else:
         raise TypeError("Only POST requests allowed, check request method!")
 
+# Create a Job for conditional captioning
+@api_view(['POST'])
+def upload_image_condition(request):
+
+    if request.method == "POST":
+        image = request.FILES.get('file')
+        socketid = request.POST.get('socketid')
+        user_caption = request.POST.get('userCaption')
+        print('User Caption:', user_caption)
+        output_dir = os.path.join(settings.MEDIA_ROOT, 'svqa', socketid)
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+        img_path = os.path.join(output_dir, str(image))
+        handle_uploaded_file(image, img_path)
+        img_url = img_path.replace(settings.BASE_DIR, "")
+        job = Job.objects.create(job_id=socketid, image=img_url)
+        print("In upload condition")
+            # Making condition true
+        viscap(img_path, socketid, job.id, user_caption, True)
+        
+        return JsonResponse({"file_path": img_path, "img_url": img_url, "job_id": job.id})
+    else:
+        raise TypeError("Only POST requests allowed, check request method!")
 
 def handle_uploaded_file(f, path):
     with open(path, 'wb+') as destination:

@@ -36,7 +36,7 @@ parser.add_argument(
 
 parser.add_argument(
     "--load-pthpath",
-    default="viscap/checkpoints/lf_gen_faster_rcnn_x101_train.pth",
+    default="viscap/checkpoints/lf_gen_mask_rcnn_x101_train_demo.pth",
     help="Path to .pth file of pretrained checkpoint.",
 )
 
@@ -153,6 +153,23 @@ def callback(ch, method, properties, body):
                 Dialog.objects.create(job=job, question=body['input_question'], answer=answer)
             except:
                 print(str(traceback.print_exc()))
+        elif body['type'] == "condition":
+            print("In pika condumer: body type is condition")
+            # go for the condition with human captions
+            demo_manager.set_image_condition(body['image_path'], body['user_caption'])
+            caption = demo_manager.get_caption()
+            result = {
+                'pred_caption': caption
+            }
+            log_to_terminal(body['socketid'], {"result": json.dumps(result)})
+            ch.basic_ack(delivery_tag=method.delivery_tag)
+            try:
+                Job.objects.filter(id=int(body['job_id'])).update(
+                    caption=caption
+                )
+            except Exception as e:
+                print(str(traceback.print_exc()))
+
         else:
             # go for the caption-run
             demo_manager.set_image(body['image_path'])
