@@ -145,6 +145,7 @@ class DemoSessionManager:
             self.question_lengths.append(len(question))
 
         if answer is not None:
+            print('Dialog history answer: ',answer)
             answer = word_tokenize(answer)
             answer = self.vocabulary.to_indices(answer)
             self.answers.append(answer)
@@ -349,11 +350,12 @@ class DemoSessionManager:
         if eos_flag:
             first_eos_idx = answer.index(self.vocabulary.EOS_TOKEN)
             answer = answer[:first_eos_idx]
-
+        print('Received answer: ',answer)
         answer = TreebankWordDetokenizer().detokenize(answer)
-        
+        print('Converted answer: ',answer)
         # Update the dialog history and return answer
         self._update(user_question, answer)
+        # self._update(user_question, "yes")
         return answer
 
     def set_condition(self, image_path, human_caption):
