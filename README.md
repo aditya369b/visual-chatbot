@@ -42,13 +42,13 @@ sudo service redis-server restart
 #### Environment Setup
 
 You can use Anaconda or Miniconda to setup this code base. Download and install Anaconda or Miniconda distribution based on Python3+ from their [downloads page][17] and proceed below. 
-
+Miniconda Archives link: https://repo.anaconda.com/miniconda/
 
 ```sh
 # clone and download submodules
-git clone https://www.github.com/yashkant/visual-chatbot.git
-git checkout update-py3
-git submodule update init --recursive
+git clone https://www.github.com/aditya369b/visual-chatbot.git
+git checkout conditioning
+git submodule update --init --recursive
 
 # create and activate new environment
 conda create -n vischat python=3.6.8
@@ -98,18 +98,21 @@ python -c "import nltk; nltk.download('punkt')"
 #### Setup the database
 ```
 # create the database
+pip install django-cors-headers==1.2.0
+pip install djangorestframework==3.10.3
 python manage.py makemigrations chat
 python manage.py migrate
 ```
 #### Run server and worker
 Launch two separate terminals and run worker and server code.   
 ```sh
+#Download the demo model checkpoint from below in the checkpoints directory
 # run rabbitmq worker on first terminal
 # warning: on the first-run glove file ~ 860 Mb is downloaded, this is a one-time thing
 python worker_viscap.py
 
 # run development server on second terminal
-python manage.py runserver
+python manage.py runserver 0.0.0.0:8000
 ```
 You are all set now. Visit http://127.0.0.1:8000 and you will have your demo running successfully.
 
