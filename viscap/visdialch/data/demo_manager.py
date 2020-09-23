@@ -1,5 +1,6 @@
 import os
 import torch
+import json, collections
 
 from typing import Any, Dict, Optional
 from nltk.tokenize.treebank import TreebankWordDetokenizer
@@ -66,6 +67,7 @@ class DemoSessionManager:
         self.questions, self.question_lengths = [], []
         self.answers, self.answer_lengths = [], []
         self.history, self.history_lengths = [], []
+        self.user_history = collections.defaultdict(list)
         self.num_rounds = 0
 
     def _get_data(self, question: Optional[str] = None):
@@ -125,7 +127,7 @@ class DemoSessionManager:
             Pass the answer as raw string.
 
         """
-
+        print("History length: ",len(self.history))
         if question is not None:
             question = word_tokenize(question)
             question = self.vocabulary.to_indices(question)
@@ -147,6 +149,7 @@ class DemoSessionManager:
             self.answers,
             False
         )
+        # print(self.history,self.history_lengths)
         self.num_rounds += 1
 
     def _reset(self):
@@ -160,6 +163,7 @@ class DemoSessionManager:
         self.questions, self.question_lengths = [], []
         self.answers, self.answer_lengths = [], []
         self.history, self.history_lengths = [], []
+        self.user_history = collections.defaultdict(list)
         self.num_rounds = 0
 
     def set_image(self, image_path):
@@ -212,12 +216,13 @@ class DemoSessionManager:
         """
 
         if self.image_caption_nl is not None:
-            return self.image_caption_nl
+            self.user_history["caption"].append(self.image_caption_nl)
+            return (self.image_caption_nl, json.dumps(self.user_history))
         else:
             raise TypeError("Image caption not found. Make sure set_image is "
                             "called prior to using this command.")
 
-    def respond(self, user_question):
+    def respond(self, user_question,history=None):
         r""" Takes in natural language user question and returns a natural
         language answer to it.
 
@@ -232,6 +237,8 @@ class DemoSessionManager:
             Answer to the question in natural language.
 
         """
+        self.build_history(user_question, history)
+
         user_question = user_question.replace("?", "").lower() + "?"
         batch = self._get_data(user_question)
         for key in batch:
@@ -251,8 +258,53 @@ class DemoSessionManager:
         
         # Update the dialog history and return answer
         self._update(user_question, answer)
-        return answer
+        self.user_history["questions"].append(user_question)
+        self.user_history["answers"].append(answer)
+        return (answer, json.dumps(self.user_history))
 
+    def build_history(self,input_question, history):
+        print(type(history))
+        print(str(history))
+        history = json.loads(history)
+        print(type(history))
+        print(history)
+        if history:
+            self.user_history = collections.defaultdict(list)
+            self.questions, self.question_lengths = [], []
+            self.answers, self.answer_lengths = [], []
+            
+            caption = history["caption"][0]
+            self.user_history['caption'].append(caption)
+            self.image_caption = self.vocabulary.to_indices(
+                word_tokenize(caption))
+            
+            history_len = len(history["questions"]) if "questions" in history else 0
+            # for question,answer in history:
+            for i in range(history_len):
+                question, answer = history["questions"][i], history["answers"][i]
+                
+                if question is not None:
+                    self.user_history['questions'].append(question)
+                    question = word_tokenize(question)
+                    question = self.vocabulary.to_indices(question)
+                    self.questions.append(question)
+                    self.question_lengths.append(len(question))
+
+                if answer is not None:
+                    self.user_history['answers'].append(answer)
+                    answer = word_tokenize(answer)
+                    answer = self.vocabulary.to_indices(answer)
+                    self.answers.append(answer)
+                    self.answer_lengths.append(len(answer))
+            #Update self.history and self.history_lengths as well from get_history
+            self.history, self.history_lengths = get_history(
+            self.dataset_config,
+            self.vocabulary,
+            self.image_caption,
+            self.questions,
+            self.answers,
+            False
+        )
 
 def validate_url(path: str):
     r""" Check whether passed string is a url.

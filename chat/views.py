@@ -11,6 +11,10 @@ import chat.constants as constants
 from .models import Job
 from .sender import viscap
 from rest_framework.decorators import api_view
+import cProfile, pstats, io, time
+# from pstats import SortKey
+
+pr = cProfile.Profile()
 
 @api_view(['GET','POST'])
 def home(request, template_name="chat/index.html"):
@@ -26,7 +30,15 @@ def home(request, template_name="chat/index.html"):
             history = request.POST.get("history", "")
             img_path = urllib.parse.unquote(img_path)
             abs_image_path = str(img_path)
+            pr.enable()
             viscap(str(abs_image_path), socketid, job_id, str(question), str(history))
+            pr.disable()
+            s = io.StringIO()
+            # sortby = SortKey.CUMULATIVE
+            sortby = "cumulative"
+            ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+            ps.print_stats()
+            print(s.getvalue())
 
             return JsonResponse({"success": True})
         except Exception:

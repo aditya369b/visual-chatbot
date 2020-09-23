@@ -7,7 +7,7 @@ import torch
 import yaml
 import pika
 import traceback
-
+import sys
 
 from viscap.captioning import DetectCaption, build_detection_model, build_caption_model
 from viscap.visdialch.data.vocabulary import Vocabulary
@@ -20,6 +20,7 @@ django.setup()
 
 from chat.utils import log_to_terminal
 from chat.models import Job, Dialog
+import cProfile, pstats, io, time
 
 
 
@@ -36,7 +37,8 @@ parser.add_argument(
 
 parser.add_argument(
     "--load-pthpath",
-    default="viscap/checkpoints/lf_gen_faster_rcnn_x101_train.pth",
+    default="viscap/checkpoints/lf_gen_mask_rcnn_x101_train_demo.pth",
+    # default="viscap/checkpoints/lf_gen_faster_rcnn_x101_train.pth",
     help="Path to .pth file of pretrained checkpoint.",
 )
 
@@ -119,6 +121,7 @@ demo_manager = DemoSessionManager(
     config,
     device
 )
+demo_manager_dict = {}
 enc_dec_model.eval()
 
 # =============================================================================
@@ -138,12 +141,26 @@ print(' [*] Waiting for messages. To exit press CTRL+C')
 def callback(ch, method, properties, body):
     try:
         body = yaml.safe_load(body)
+        # if body['socketid'] not in demo_manager_dict:
+        #     demo_manager_dict[body['socketid']] = DemoSessionManager(
+        #                                         detect_caption_model,
+        #                                         enc_dec_model,
+        #                                         vocabulary,
+        #                                         config,
+        #                                         device
+        #                                     )
+        pr = cProfile.Profile()
+        pr.enable()
+        print(demo_manager_dict.keys())
+        print("demo_manager_dict len:", len(demo_manager_dict))
         if body['type'] == "visdial":
             # go for the visdial-run
-            answer = demo_manager.respond(body['input_question'])
+            # answer = demo_manager_dict[body['socketid']].respond(body['input_question'],body['history'])
+            answer = demo_manager.respond(body['input_question'],body['history'])
             result = {
-                'answer': answer,
+                'answer': answer[0],
                 'question': body['input_question'],
+                'history': answer[1],
 		'socketid': body['socketid']
             }
             log_to_terminal(body['socketid'], {"result": json.dumps(result)})
@@ -155,10 +172,12 @@ def callback(ch, method, properties, body):
                 print(str(traceback.print_exc()))
         else:
             # go for the caption-run
+            # demo_manager_dict[body['socketid']].set_image(body['image_path'])
             demo_manager.set_image(body['image_path'])
             caption = demo_manager.get_caption()
             result = {
-                'pred_caption': caption,
+                'pred_caption': caption[0],
+                'history': caption[1],
 		'socketid': body['socketid']
             }
             log_to_terminal(body['socketid'], {"result": json.dumps(result)})
@@ -169,6 +188,18 @@ def callback(ch, method, properties, body):
                 )
             except Exception as e:
                 print(str(traceback.print_exc()))
+        pr.disable()
+        s = io.StringIO()
+        # sortby = SortKey.CUMULATIVE
+        sortby = "cumulative"
+        ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+        ps.print_stats()
+        original_stdout = sys.stdout # Save a reference to the original standard output
+
+        with open('cprofile_with_gpu.txt', 'w') as f:
+            sys.stdout = f # Change the standard output to the file we created.
+            print(s.getvalue())
+            sys.stdout = original_stdout
         django.db.close_old_connections()
 
     except Exception:

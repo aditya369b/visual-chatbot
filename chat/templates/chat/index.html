@@ -131,7 +131,8 @@ socket.onmessage = function(response) {
         if ("answer" in result) {
             var bot_message = result['answer'];
         } else if ("pred_caption" in result) {
-            prev_history = result['pred_caption'];
+            // prev_history = result['pred_caption'];
+            prev_history = result['history'];
             generated_caption = result['pred_caption'];
             var bot_message = "<b>Caption: </b>" + result['pred_caption'];
         }
