@@ -1,6 +1,8 @@
 import os
 import torch
 import codecs, json 
+import numpy as np
+import pickle
 
 from typing import Any, Dict, Optional
 from nltk.tokenize.treebank import TreebankWordDetokenizer
@@ -215,7 +217,7 @@ class DemoSessionManager:
         # build the initial history
         self._update()
 
-    def set_image_condition(self, image_path, user_caption=''):
+    def set_image_condition(self, image_path, path_name=''):
         r""" Build a dict object for inference inside the Visdial
         model. This is used internally by the ``respond`` method.
 
@@ -266,7 +268,7 @@ class DemoSessionManager:
         #     self.image_caption_nl = DemoSessionManager.image_feat_list[index+1]
         #     # self.image_caption_nl = "Image added"
 
-        self.image_caption_nl = user_caption
+        self.image_caption_nl = "in script"
         self.image_features_dict[self.image_features] = True
         print(self.image_features_dict)
         image_dict = {}
@@ -276,11 +278,45 @@ class DemoSessionManager:
         # print(jpeg_tensor)
         data_new = image_dict
         # torch.save('torch.txt',self.image_features,'ascii')
-        # print("Img F1: ",self.image_features.cpu().data.numpy().tolist())
+        # x_np = np.load("img_f2.npz")
+        # # x_np = x_np.f
+        # x = [x_np[key] for key in x_np]
+        # x = np.array(x)
+        # print("type x_np: ", type(x))
+        # x_tor = torch.from_numpy(x)
+        # x_tor_device = torch.from_numpy(x).to('cuda:0')
+        # print('device x_tor',x_tor.device)
+        # print('device x_tor_device',x_tor_device.device)
+        # print('device image featuires',self.image_features.device)
+        # test_file = "image_features/let1xiLvzf0_frame_210.pkl"
+        # with open(test_file, 'rb') as infile:
+        #     result = pickle.load(infile)
+        # img_res = self.image_features.cpu().data.numpy().tolist()
+        # if result.tolist() == img_res:  print("true")
+        # else: print("false")
+
+        # if x_tor == self.image_features.cpu(): print("is true? ")
+        # else: print("is false? ")
+                   
+        img_f_np = self.image_features.cpu().data.numpy()
+        # full_path = "image_features/" + path_name + '.pkl'
+        # with open(full_path, 'wb') as outfile:
+        #     pickle.dump(img_f_np, outfile, pickle.HIGHEST_PROTOCOL)
+        # print("pickle dumped")        
+
+        # print("Img F1: ", img_f_np)
+        print("Type Img F1: ", type(img_f_np))
+        np.savez("img_f2",img_f_np[0])
         # json.dump(self.image_features.cpu().data.numpy().tolist() ,  codecs.open("file_name.json", 'w', encoding='utf-8'), separators=(',', ':'), sort_keys=True)
         # json.dump([[1,2],[3,4],[5,6]] ,  codecs.open("file_name.json", 'w', encoding='utf-8'), separators=(',', ':'), sort_keys=True)
         # f = open('file_name.json')
         # d = json.load(f)
+        img_f = self.image_features.cpu().data.numpy()
+        print("type f: ", img_f.ndim)
+        print("type f: ", img_f[0].shape)
+        # for f in img_f:
+        #     print("type f: ", type(f))
+
         print("Type1: ",type(self.image_features.cpu().data.numpy().tolist()))
         # print("Type2: ",type(d))
         # print("Img F2: ", d == self.image_features.cpu().data.numpy().tolist())
