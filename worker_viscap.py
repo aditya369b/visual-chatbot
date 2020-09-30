@@ -156,7 +156,7 @@ def callback(ch, method, properties, body):
         if body['type'] == "visdial":
             # go for the visdial-run
             # answer = demo_manager_dict[body['socketid']].respond(body['input_question'],body['history'])
-            answer = demo_manager.respond(body['input_question'],body['history'])
+            answer = demo_manager.respond(body['input_question'],body['history'],body['image_key'])
             result = {
                 'answer': answer[0],
                 'question': body['input_question'],
@@ -173,8 +173,14 @@ def callback(ch, method, properties, body):
         else:
             # go for the caption-run
             # demo_manager_dict[body['socketid']].set_image(body['image_path'])
-            demo_manager.set_image(body['image_path'])
-            caption = demo_manager.get_caption()
+            if 'pythia_caption' not in body or not body['pythia_caption']:
+                demo_manager.set_image(body['image_path'])
+                caption = demo_manager.get_caption()
+            else:
+                caption, cap = [], body['pythia_caption']
+                caption.append(cap)
+                history = {"caption" : [cap]}
+                caption.append(json.dumps(history))
             result = {
                 'pred_caption': caption[0],
                 'history': caption[1],

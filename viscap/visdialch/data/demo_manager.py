@@ -1,6 +1,8 @@
 import os
 import torch
 import json, collections
+import numpy as np
+import pickle
 
 from typing import Any, Dict, Optional
 from nltk.tokenize.treebank import TreebankWordDetokenizer
@@ -222,7 +224,7 @@ class DemoSessionManager:
             raise TypeError("Image caption not found. Make sure set_image is "
                             "called prior to using this command.")
 
-    def respond(self, user_question,history=None):
+    def respond(self, user_question,history=None,image_key=None):
         r""" Takes in natural language user question and returns a natural
         language answer to it.
 
@@ -237,6 +239,12 @@ class DemoSessionManager:
             Answer to the question in natural language.
 
         """
+        if image_key:
+            image_feat_path = "image_features/" + image_key + ".pkl"
+            with open(image_feat_path, 'rb') as infile:
+                image_feat = pickle.load(infile)
+            self.image_features = torch.from_numpy(image_feat).to('cuda:0')
+            
         self.build_history(user_question, history)
 
         user_question = user_question.replace("?", "").lower() + "?"
