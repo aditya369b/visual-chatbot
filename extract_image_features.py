@@ -125,10 +125,10 @@ enc_dec_model.eval()
 #   SCRIPT FOR STORING IMAGE FEATURES AS PICKLE
 # =============================================================================
 
-
-df = pd.read_csv("./let1xiLvzf0_data.csv")
-kf_url = "http://18.221.192.73:5001/keyframes/let1xiLvzf0/"
-video_id = "let1xiLvzf0"
+## Change the video_id at first three lines below
+df = pd.read_csv("./2Cy6U3LOR0o_data.csv")
+kf_url = "http://18.221.192.73:5001/keyframes/2Cy6U3LOR0o/"
+video_id = "2Cy6U3LOR0o"
 
 for index, row in df.iterrows():
     kf_num = row["Frame Index"]
@@ -142,7 +142,7 @@ for index, row in df.iterrows():
 
         demo_manager.set_image_condition(image_path,feature_path)
 
-
+## Just run the command: python extract_image_features.py --gpu-ids 0
 
 # =============================================================================
 #   BUILD VISDIAL-CAPTIONING QUEUE

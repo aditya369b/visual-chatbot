@@ -299,10 +299,10 @@ class DemoSessionManager:
         # else: print("is false? ")
                    
         img_f_np = self.image_features.cpu().data.numpy()
-        # full_path = "image_features/" + path_name + '.pkl'
-        # with open(full_path, 'wb') as outfile:
-        #     pickle.dump(img_f_np, outfile, pickle.HIGHEST_PROTOCOL)
-        # print("pickle dumped")        
+        full_path = "image_features/" + path_name + '.pkl'
+        with open(full_path, 'wb') as outfile:
+            pickle.dump(img_f_np, outfile, pickle.HIGHEST_PROTOCOL)
+        print("pickle dumped")        
 
         # print("Img F1: ", img_f_np)
         print("Type Img F1: ", type(img_f_np))
